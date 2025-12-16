@@ -1,5 +1,4 @@
-<!-- 定义属性 -->
-<property environment="env"/>
+<!-- 优先使用命令行参数，否则使用环境变量 -->
 <property name="jmeter.home" value="${env.JMETER_HOME}"/>
 <property name="report.dir" value="${basedir}/build/reports"/>
 <property name="jtl.dir" value="${basedir}/build/jtl"/>
@@ -28,7 +27,7 @@
     
     <!-- 验证JMeter Home是否存在 -->
     <available file="${jmeter.home}/bin/ApacheJMeter.jar" property="jmeter.jar.exists"/>
-    <fail unless="jmeter.jar.exists" message="JMeter Home目录无效，请检查JMETER_HOME环境变量设置"/>
+    <fail unless="jmeter.jar.exists" message="JMeter Home目录无效，请检查JMETER_HOME环境变量或命令行参数设置"/>
     
     <tstamp>
         <format property="time" pattern="yyyyMMdd-HHmmss"/>
@@ -37,30 +36,13 @@
     <jmeter jmeterhome="${jmeter.home}"
             resultlog="${jtl.dir}/test-${time}.jtl"
             failureproperty="jmeter.failed">
-        
-        <!-- JMeter属性 -->
-        <property name="jmeter.save.saveservice.output_format" value="xml"/>
-        <property name="jmeter.save.saveservice.response_data" value="true"/>
-        <property name="jmeter.save.saveservice.samplerData" value="true"/>
-        <property name="jmeter.save.saveservice.requestHeaders" value="true"/>
-        <property name="jmeter.save.saveservice.url" value="true"/>
-        <property name="jmeter.save.saveservice.responseHeaders" value="true"/>
-        
-        <!-- 测试文件 -->
-        <testplans dir="${jmx.dir}" includes="*.jmx"/>
-        
-        <!-- 用户自定义属性文件 -->
-        <jvmarg value="-Djmeter.properties.file=${basedir}/jmeter.properties"/>
-        
+        <testplans dir="${jmx.dir}" includes="**/*.jmx"/>
     </jmeter>
     
-    <condition property="status" value="FAILED" else="PASSED">
-        <isset property="jmeter.failed"/>
-    </condition>
-    
-    <echo message="测试执行完成，状态: ${status}"/>
     <echo message="测试结果文件: ${jtl.dir}/test-${time}.jtl"/>
+    <fail if="jmeter.failed" message="JMeter测试失败"/>
 </target>
+
 
 <!-- 生成HTML报告 -->
 <target name="report" depends="run">
