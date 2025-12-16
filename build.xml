@@ -24,6 +24,9 @@
     <!-- 运行JMeter测试 -->
     <target name="run" depends="clean">
         <echo message="开始执行JMeter测试..."/>
+		<echo>JMeter Home: ${jmeter.home}</echo>
+		<echo>当前工作目录 (basedir): ${basedir}</echo>
+		<echo>JMX文件路径 (如果已定义): ${jmeter.test.file}</echo>
         <tstamp>
             <format property="time" pattern="yyyyMMdd-HHmmss"/>
         </tstamp>
