@@ -44,9 +44,7 @@
             <testplans dir="${jmx.dir}" includes="*.jmx"/>
             
             <!-- 用户自定义属性文件 -->
-            <propertyfile>
-                <file file="${basedir}/jmeter.properties"/>
-            </propertyfile>
+            <jvmarg value="-Djmeter.properties.file=${basedir}/jmeter.properties"/>
             
         </jmeter>
         
