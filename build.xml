@@ -1,96 +1,100 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project name="JMeter-Ant" default="run" basedir=".">
+<!-- 定义属性 -->
+<property environment="env"/>
+<property name="jmeter.home" value="${env.JMETER_HOME}"/>
+<property name="report.dir" value="${basedir}/build/reports"/>
+<property name="jtl.dir" value="${basedir}/build/jtl"/>
+<property name="jmx.dir" value="${basedir}/jmx"/>
+<property name="lib.dir" value="${basedir}/lib"/>
+
+<!-- 初始化任务定义 -->
+<taskdef name="jmeter"
+         classname="org.programmerplanet.ant.taskdefs.jmeter.JMeterTask"
+         classpath="${lib.dir}/jmeter-ant-task-1.10.1.jar"/>
+
+<!-- 清理目录 -->
+<target name="clean">
+    <delete dir="${report.dir}"/>
+    <delete dir="${jtl.dir}"/>
+    <mkdir dir="${report.dir}"/>
+    <mkdir dir="${jtl.dir}"/>
+</target>
+
+<!-- 运行JMeter测试 -->
+<target name="run" depends="clean">
+    <echo message="开始执行JMeter测试..."/>
+    <echo>JMeter Home: ${jmeter.home}</echo>
+    <echo>当前工作目录 (basedir): ${basedir}</echo>
+    <echo>JMX文件路径 (如果已定义): ${jmeter.test.file}</echo>
     
-    <!-- 定义属性 -->
-    <property name="jmeter.home" value="${env.JMETER_HOME}"/>
-    <property name="report.dir" value="${basedir}/build/reports"/>
-    <property name="jtl.dir" value="${basedir}/build/jtl"/>
-    <property name="jmx.dir" value="${basedir}/jmx"/>
-    <property name="lib.dir" value="${basedir}/lib"/>
+    <!-- 验证JMeter Home是否存在 -->
+    <available file="${jmeter.home}/bin/ApacheJMeter.jar" property="jmeter.jar.exists"/>
+    <fail unless="jmeter.jar.exists" message="JMeter Home目录无效，请检查JMETER_HOME环境变量设置"/>
     
-    <!-- 初始化任务定义 -->
-    <taskdef name="jmeter"
-             classname="org.programmerplanet.ant.taskdefs.jmeter.JMeterTask"
-             classpath="${lib.dir}/jmeter-ant-task-1.10.1.jar"/>
+    <tstamp>
+        <format property="time" pattern="yyyyMMdd-HHmmss"/>
+    </tstamp>
     
-    <!-- 清理目录 -->
-    <target name="clean">
-        <delete dir="${report.dir}"/>
-        <delete dir="${jtl.dir}"/>
-        <mkdir dir="${report.dir}"/>
-        <mkdir dir="${jtl.dir}"/>
-    </target>
-    
-    <!-- 运行JMeter测试 -->
-    <target name="run" depends="clean">
-        <echo message="开始执行JMeter测试..."/>
-		<echo>JMeter Home: ${jmeter.home}</echo>
-		<echo>当前工作目录 (basedir): ${basedir}</echo>
-		<echo>JMX文件路径 (如果已定义): ${jmeter.test.file}</echo>
-        <tstamp>
-            <format property="time" pattern="yyyyMMdd-HHmmss"/>
-        </tstamp>
+    <jmeter jmeterhome="${jmeter.home}"
+            resultlog="${jtl.dir}/test-${time}.jtl"
+            failureproperty="jmeter.failed">
         
-        <jmeter jmeterhome="D:\ruanjain\jmeter\apache-jmeter-5.5"
-                resultlog="${jtl.dir}/test-${time}.jtl"
-                failureproperty="jmeter.failed">
-            
-            <!-- JMeter属性 -->
-            <property name="jmeter.save.saveservice.output_format" value="xml"/>
-            <property name="jmeter.save.saveservice.response_data" value="true"/>
-            <property name="jmeter.save.saveservice.samplerData" value="true"/>
-            <property name="jmeter.save.saveservice.requestHeaders" value="true"/>
-            <property name="jmeter.save.saveservice.url" value="true"/>
-            <property name="jmeter.save.saveservice.responseHeaders" value="true"/>
-            
-            <!-- 测试文件 -->
-            <testplans dir="${jmx.dir}" includes="*.jmx"/>
-            
-            <!-- 用户自定义属性文件 -->
-            <jvmarg value="-Djmeter.properties.file=${basedir}/jmeter.properties"/>
-            
-        </jmeter>
+        <!-- JMeter属性 -->
+        <property name="jmeter.save.saveservice.output_format" value="xml"/>
+        <property name="jmeter.save.saveservice.response_data" value="true"/>
+        <property name="jmeter.save.saveservice.samplerData" value="true"/>
+        <property name="jmeter.save.saveservice.requestHeaders" value="true"/>
+        <property name="jmeter.save.saveservice.url" value="true"/>
+        <property name="jmeter.save.saveservice.responseHeaders" value="true"/>
         
-        <condition property="status" value="FAILED" else="PASSED">
-            <isset property="jmeter.failed"/>
-        </condition>
+        <!-- 测试文件 -->
+        <testplans dir="${jmx.dir}" includes="*.jmx"/>
         
-        <echo message="测试执行完成，状态: ${status}"/>
-    </target>
+        <!-- 用户自定义属性文件 -->
+        <jvmarg value="-Djmeter.properties.file=${basedir}/jmeter.properties"/>
+        
+    </jmeter>
     
-    <!-- 生成HTML报告 -->
-    <target name="report" depends="run">
-        <echo message="生成HTML报告..."/>
-        
-        <!-- 找到最新的JTL文件 -->
-        <last id="latest">
-            <fileset dir="${jtl.dir}" includes="*.jtl"/>
-        </last>
-        
-        <java classname="org.apache.jmeter.report.cli.ReportGenerator"
-              fork="true" failonerror="true">
-            <classpath>
-                <fileset dir="${jmeter.home}/lib" includes="**/*.jar"/>
-                <fileset dir="${jmeter.home}/lib/ext" includes="**/*.jar"/>
-            </classpath>
-            <arg value="-i"/>
-            <arg value="${jtl.dir}/@{latest}"/>
-            <arg value="-o"/>
-            <arg value="${report.dir}/html-@{latest}"/>
-            <arg value="-f"/>
-            <arg value="HTML"/>
-        </java>
-        
-        <!-- 复制报告到Jenkins可访问目录 -->
-        <copy todir="${report.dir}/latest">
-            <fileset dir="${report.dir}/html-@{latest}"/>
-        </copy>
-    </target>
+    <condition property="status" value="FAILED" else="PASSED">
+        <isset property="jmeter.failed"/>
+    </condition>
     
-    <!-- 发送邮件通知 -->
-    <target name="send-email" depends="report">
-        <echo message="发送邮件通知..."/>
-        <!-- 配置邮件发送逻辑 -->
-    </target>
+    <echo message="测试执行完成，状态: ${status}"/>
+    <echo message="测试结果文件: ${jtl.dir}/test-${time}.jtl"/>
+</target>
+
+<!-- 生成HTML报告 -->
+<target name="report" depends="run">
+    <echo message="生成HTML报告..."/>
     
-</project>
+    <!-- 找到最新的JTL文件 -->
+    <last id="latest">
+        <fileset dir="${jtl.dir}" includes="*.jtl"/>
+    </last>
+    
+    <java classname="org.apache.jmeter.report.cli.ReportGenerator"
+          fork="true" failonerror="true">
+        <classpath>
+            <fileset dir="${jmeter.home}/lib" includes="**/*.jar"/>
+            <fileset dir="${jmeter.home}/lib/ext" includes="**/*.jar"/>
+        </classpath>
+        <arg value="-i"/>
+        <arg value="${jtl.dir}/@{latest}"/>
+        <arg value="-o"/>
+        <arg value="${report.dir}/html-@{latest}"/>
+        <arg value="-f"/>
+        <arg value="HTML"/>
+    </java>
+    
+    <!-- 复制报告到Jenkins可访问目录 -->
+    <copy todir="${report.dir}/latest">
+        <fileset dir="${report.dir}/html-@{latest}"/>
+    </copy>
+    
+    <echo message="HTML报告生成完成: ${report.dir}/latest/index.html"/>
+</target>
+
+<!-- 发送邮件通知 -->
+<target name="send-email" depends="report">
+    <echo message="发送邮件通知..."/>
+    <!-- 配置邮件发送逻辑 -->
+</target>
