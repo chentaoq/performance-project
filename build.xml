@@ -31,7 +31,7 @@
             <format property="time" pattern="yyyyMMdd-HHmmss"/>
         </tstamp>
         
-        <jmeter jmeterhome="${jmeter.home}"
+        <jmeter jmeterhome="D:\ruanjain\jmeter\apache-jmeter-5.5"
                 resultlog="${jtl.dir}/test-${time}.jtl"
                 failureproperty="jmeter.failed">
             
